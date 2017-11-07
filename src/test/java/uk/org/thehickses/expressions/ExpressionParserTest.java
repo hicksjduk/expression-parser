@@ -113,6 +113,12 @@ public class ExpressionParserTest
     }
 
     @Test(expected = ParseException.class)
+    public void testMismatchedParenthesesAndANumber() throws Exception
+    {
+        ExpressionParser.parse("((50 - 11) * 2) + 41) ) 6)");
+    }
+
+    @Test(expected = ParseException.class)
     public void testEmptyParentheses() throws Exception
     {
         ExpressionParser.parse("()");
@@ -128,5 +134,11 @@ public class ExpressionParserTest
     public void testJustARightParenthesis() throws Exception
     {
         ExpressionParser.parse("      )        ");
+    }
+
+    @Test(expected = ParseException.class)
+    public void testJustAnOperator() throws Exception
+    {
+        ExpressionParser.parse("  *    ");
     }
 }

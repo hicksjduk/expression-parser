@@ -141,6 +141,12 @@ public class ExpressionParser
         {
             throw new ParseException("Input expression contains invalid characters");
         }
+        if (!expression.matches("(\\s|\\()*\\d.*"))
+        {
+            throw new ParseException(
+                    "Invalid expression, the first character that is not whitespace "
+                            + "or a left parenthesis must be numeric");
+        }
         characters = new ArrayDeque<>(Arrays.asList(expression.split("")));
     }
 
@@ -154,16 +160,13 @@ public class ExpressionParser
     private IntSupplier parse() throws ParseException
     {
         IntSupplier answer = parseExpression();
-        if (answer == null)
-        {
-            throw new ParseException("No expression specified");
-        }
         // If there are any characters after the parsed expression, this is OK as long as they are whitespace or
         // (mismatched) right parentheses. Anything else is invalid.
         getNextMatch("(\\s|\\))+");
         if (!characters.isEmpty())
         {
-            throw new ParseException("Expression contains extraneous characters");
+            throw new ParseException("Expression contains extraneous characters '%s'",
+                    getNextMatch(".+"));
         }
         return answer;
     }

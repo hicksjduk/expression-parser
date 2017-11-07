@@ -270,25 +270,22 @@ public class ExpressionParser
     }
 
     /**
-     * Parses an operator, matching one of the specified operator symbols, at the current position in the input.
+     * Parses an operator, matching one of the specified operations, at the current position in the input.
      * 
-     * @param symbols
-     *            the symbols.
-     * @param operators
-     *            the operators.
-     * @return the specified operator that corresponds to the operator symbol found (same position), if a symbol was
-     *         found, otherwise null.
-     * @throws RuntimeException
-     *             if the length of {@code symbols} is not the same as the length of {@code operators}.
+     * @param operations
+     *            the operations.
+     * @return an IntBinaryOperator whose applyAsInt() method applies the appropriate arithmetic operation to its two
+     *         operands, or null if no operator could be parsed.
      */
-    private IntBinaryOperator parseOperator(Operation... operations) throws RuntimeException
+    private IntBinaryOperator parseOperator(Operation... operations)
     {
         IntBinaryOperator answer = null;
         String regex = Stream
                 .of(operations)
                 .map(o -> o.symbol)
-                .reduce("[", String::concat)
-                .concat("]");
+                .collect(() -> new StringBuilder("["), StringBuilder::append, StringBuilder::append)
+                .append("]")
+                .toString();
         String token = getNextMatch(regex);
         if (token != null)
         {

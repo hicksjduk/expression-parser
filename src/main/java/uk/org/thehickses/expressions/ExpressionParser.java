@@ -260,14 +260,32 @@ public class ExpressionParser
     private IntSupplier parseAtomicExpression() throws ParseException
     {
         getNextMatch("\\s+");
-        IntSupplier answer = parseNumber();
-        if (answer == null)
-        {
-            answer = parseParenthesisedExpression();
-        }
+        IntSupplier answer = getFirstNonNull(this::parseNumber, this::parseParenthesisedExpression);
         if (answer != null)
         {
             getNextMatch("\\s+");
+        }
+        return answer;
+    }
+
+    /**
+     * Gets the first non-null value returned by one of the specified parsers.
+     * 
+     * @param parsers
+     *            the parsers.
+     * @return the first non-null value returned, or null if they all return null.
+     * @throws ParseException
+     *             if any parser throws an exception.
+     */
+    private IntSupplier getFirstNonNull(ExpressionSupplier... parsers) throws ParseException
+    {
+        IntSupplier answer = null;
+        for (ExpressionSupplier es : parsers)
+        {
+            if ((answer = es.get()) != null)
+            {
+                break;
+            }
         }
         return answer;
     }

@@ -3,8 +3,11 @@ package uk.org.thehickses.expressions;
 import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.Deque;
+import java.util.Map;
 import java.util.function.IntBinaryOperator;
 import java.util.function.IntSupplier;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.commons.lang3.StringUtils;
@@ -36,12 +39,6 @@ public class ExpressionParser
     private static interface ExpressionSupplier
     {
         IntSupplier get() throws ParseException;
-    }
-
-    @FunctionalInterface
-    private static interface OperatorSupplier
-    {
-        IntBinaryOperator get() throws ParseException;
     }
 
     private static enum Operation
@@ -85,17 +82,41 @@ public class ExpressionParser
         }
     }
 
-    private static void logStart(Runnable logger)
+    /**
+     * Logs the start of parsing an expression.
+     * 
+     * @param logAction
+     *            the logging action specific to the expression.
+     */
+    private static void logStart(Runnable logAction)
     {
         LOG.debug(StringUtils.repeat('>', 30));
-        logger.run();
+        logAction.run();
     }
 
-    private static void logEnd(Runnable logger)
+    /**
+     * Logs the end of parsing an expression.
+     * 
+     * @param logAction
+     *            the logging action specific to the expression.
+     */
+    private static void logEnd(Runnable logAction)
     {
-        logger.run();
+        logAction.run();
         LOG.debug(StringUtils.repeat('<', 30));
     }
+
+    /**
+     * A parser for low-priority expressions.
+     */
+    private final Supplier<IntBinaryOperator> lowPriorityOperationParser = operationParser(
+            Operation.ADD, Operation.SUBTRACT);
+
+    /**
+     * A parser for high-priority expressions.
+     */
+    private final Supplier<IntBinaryOperator> highPriorityOperationParser = operationParser(
+            Operation.MULTIPLY, Operation.DIVIDE);
 
     /**
      * The characters of the input.
@@ -172,7 +193,7 @@ public class ExpressionParser
      */
     private IntSupplier parseLowPriorityExpression() throws ParseException
     {
-        return parseExpression(this::parseHighPriorityExpression, this::parseLowPriorityOperator);
+        return parseExpression(this::parseHighPriorityExpression, lowPriorityOperationParser);
     }
 
     /**
@@ -186,7 +207,7 @@ public class ExpressionParser
      */
     private IntSupplier parseHighPriorityExpression() throws ParseException
     {
-        return parseExpression(this::parseAtomicExpression, this::parseHighPriorityOperator);
+        return parseExpression(this::parseAtomicExpression, highPriorityOperationParser);
     }
 
     /**
@@ -203,7 +224,7 @@ public class ExpressionParser
      *             if the expression is invalid in format.
      */
     private IntSupplier parseExpression(ExpressionSupplier operandParser,
-            OperatorSupplier operatorParser) throws ParseException
+            Supplier<IntBinaryOperator> operatorParser) throws ParseException
     {
         IntSupplier answer = operandParser.get();
         while (answer != null)
@@ -241,64 +262,32 @@ public class ExpressionParser
         {
             answer = parseParenthesisedExpression();
         }
-        getNextMatch("\\s+");
+        if (answer != null)
+        {
+            getNextMatch("\\s+");
+        }
         return answer;
     }
 
     /**
-     * Parses a low-priority operator at the current position in the input. This is either an addition or a subtraction
-     * sign.
-     * 
-     * @return an IntBinaryOperator whose applyAsInt() method applies the appropriate arithmetic operation to its two
-     *         operands, or null if no operator could be parsed.
-     */
-    private IntBinaryOperator parseLowPriorityOperator()
-    {
-        return parseOperator(Operation.ADD, Operation.SUBTRACT);
-    }
-
-    /**
-     * Parses a high-priority operator at the current position in the input. This is either a multiplication or a
-     * division sign.
-     * 
-     * @return an IntBinaryOperator whose applyAsInt() method applies the appropriate arithmetic operation to its two
-     *         operands, or null if no operator could be parsed.
-     */
-    private IntBinaryOperator parseHighPriorityOperator()
-    {
-        return parseOperator(Operation.MULTIPLY, Operation.DIVIDE);
-    }
-
-    /**
-     * Parses an operator, matching one of the specified operations, at the current position in the input.
+     * Gets an operation parser for the specified operations.
      * 
      * @param operations
      *            the operations.
-     * @return an IntBinaryOperator whose applyAsInt() method applies the appropriate arithmetic operation to its two
-     *         operands, or null if no operator could be parsed.
+     * @return an operation parser.
      */
-    private IntBinaryOperator parseOperator(Operation... operations)
+    private Supplier<IntBinaryOperator> operationParser(Operation... operations)
     {
-        IntBinaryOperator answer = null;
-        String regex = Stream
+        Map<String, IntBinaryOperator> opsBySymbol = Stream
                 .of(operations)
-                .map(o -> o.symbol)
+                .collect(Collectors.toMap(o -> o.symbol, o -> o.operation));
+        String regex = opsBySymbol
+                .keySet()
+                .stream()
                 .collect(() -> new StringBuilder("["), StringBuilder::append, StringBuilder::append)
                 .append("]")
                 .toString();
-        String token = getNextMatch(regex);
-        if (token != null)
-        {
-            for (Operation op : operations)
-            {
-                if (token.equals(op.symbol))
-                {
-                    answer = op.operation;
-                    break;
-                }
-            }
-        }
-        return answer;
+        return () -> opsBySymbol.get(getNextMatch(regex));
     }
 
     /**

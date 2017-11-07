@@ -3,9 +3,9 @@ package uk.org.thehickses.expressions;
 import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.Deque;
-import java.util.function.Function;
 import java.util.function.IntBinaryOperator;
 import java.util.function.IntSupplier;
+import java.util.stream.Stream;
 
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -42,6 +42,21 @@ public class ExpressionParser
     private static interface OperatorSupplier
     {
         IntBinaryOperator get() throws ParseException;
+    }
+
+    private static enum Operation
+    {
+        ADD("+", (a, b) -> a + b), SUBTRACT("-", (a, b) -> a - b), MULTIPLY("*",
+                (a, b) -> a * b), DIVIDE("/", (a, b) -> a / b);
+
+        public final String symbol;
+        public final IntBinaryOperator operation;
+
+        private Operation(String symbol, IntBinaryOperator operation)
+        {
+            this.symbol = symbol;
+            this.operation = operation;
+        }
     }
 
     /**
@@ -239,7 +254,7 @@ public class ExpressionParser
      */
     private IntBinaryOperator parseLowPriorityOperator()
     {
-        return parseOperator("+-", (a, b) -> a + b, (a, b) -> a - b);
+        return parseOperator(Operation.ADD, Operation.SUBTRACT);
     }
 
     /**
@@ -251,7 +266,7 @@ public class ExpressionParser
      */
     private IntBinaryOperator parseHighPriorityOperator()
     {
-        return parseOperator("*/", (a, b) -> a * b, (a, b) -> a / b);
+        return parseOperator(Operation.MULTIPLY, Operation.DIVIDE);
     }
 
     /**
@@ -266,18 +281,25 @@ public class ExpressionParser
      * @throws RuntimeException
      *             if the length of {@code symbols} is not the same as the length of {@code operators}.
      */
-    private IntBinaryOperator parseOperator(String symbols, IntBinaryOperator... operators)
-            throws RuntimeException
+    private IntBinaryOperator parseOperator(Operation... operations) throws RuntimeException
     {
-        if (symbols.length() != operators.length)
-        {
-            throw new RuntimeException("Symbols and operators must have the same length");
-        }
         IntBinaryOperator answer = null;
-        String token = getNextMatch(String.format("[%s]", symbols));
+        String regex = Stream
+                .of(operations)
+                .map(o -> o.symbol)
+                .reduce("[", String::concat)
+                .concat("]");
+        String token = getNextMatch(regex);
         if (token != null)
         {
-            answer = operators[symbols.indexOf(token)];
+            for (Operation op : operations)
+            {
+                if (token.equals(op.symbol))
+                {
+                    answer = op.operation;
+                    break;
+                }
+            }
         }
         return answer;
     }

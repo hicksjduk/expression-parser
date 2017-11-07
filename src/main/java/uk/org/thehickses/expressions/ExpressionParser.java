@@ -3,6 +3,7 @@ package uk.org.thehickses.expressions;
 import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.Deque;
+import java.util.function.Function;
 import java.util.function.IntBinaryOperator;
 import java.util.function.IntSupplier;
 
@@ -238,10 +239,7 @@ public class ExpressionParser
      */
     private IntBinaryOperator parseLowPriorityOperator()
     {
-        String token = getNextMatch("[+-]");
-        IntBinaryOperator answer = token == null ? null
-                : "+".equals(token) ? (a, b) -> a + b : (a, b) -> a - b;
-        return answer;
+        return parseOperator("+-", (a, b) -> a + b, (a, b) -> a - b);
     }
 
     /**
@@ -253,9 +251,34 @@ public class ExpressionParser
      */
     private IntBinaryOperator parseHighPriorityOperator()
     {
-        String token = getNextMatch("[*/]");
-        IntBinaryOperator answer = token == null ? null
-                : "*".equals(token) ? (a, b) -> a * b : (a, b) -> a / b;
+        return parseOperator("*/", (a, b) -> a * b, (a, b) -> a / b);
+    }
+
+    /**
+     * Parses an operator, matching one of the specified operator symbols, at the current position in the input.
+     * 
+     * @param symbols
+     *            the symbols.
+     * @param operators
+     *            the operators.
+     * @return the specified operator that corresponds to the operator symbol found (same position), if a symbol was
+     *         found, otherwise null.
+     * @throws RuntimeException
+     *             if the length of {@code symbols} is not the same as the length of {@code operators}.
+     */
+    private IntBinaryOperator parseOperator(String symbols, IntBinaryOperator... operators)
+            throws RuntimeException
+    {
+        if (symbols.length() != operators.length)
+        {
+            throw new RuntimeException("Symbols and operators must have the same length");
+        }
+        IntBinaryOperator answer = null;
+        String token = getNextMatch(String.format("[%s]", symbols));
+        if (token != null)
+        {
+            answer = operators[symbols.indexOf(token)];
+        }
         return answer;
     }
 

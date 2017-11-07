@@ -302,7 +302,10 @@ public class ExpressionParser
         Map<String, IntBinaryOperator> opsBySymbol = Stream
                 .of(operations)
                 .collect(Collectors.toMap(o -> o.symbol, o -> o.operation));
-        String regex = StringUtils.join("[", StringUtils.join(opsBySymbol.keySet(), ""), "]");
+        String regex = new StringBuilder("[")
+                .append(StringUtils.join(opsBySymbol.keySet(), ""))
+                .append("]")
+                .toString();
         return () -> opsBySymbol.get(getNextMatch(regex));
     }
 

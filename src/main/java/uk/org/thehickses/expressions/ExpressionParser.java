@@ -273,8 +273,7 @@ public class ExpressionParser
         String answer = null;
         while (!characters.isEmpty())
         {
-            String character = characters.peek();
-            String candidate = (answer == null ? "" : answer) + character;
+            String candidate = (answer == null ? "" : answer) + characters.peek();
             if (!candidate.matches(regex))
             {
                 break;
@@ -296,7 +295,7 @@ public class ExpressionParser
     /**
      * Parses a number at the current position in the input. This is a string of one or more digits.
      * 
-     * @return an IntSuppplier whose applyAsInt() method returns the number found, or null if no number could be parsed.
+     * @return an IntSupplier whose applyAsInt() method returns the number found, or null if no number could be parsed.
      */
     private IntSupplier parseNumber()
     {

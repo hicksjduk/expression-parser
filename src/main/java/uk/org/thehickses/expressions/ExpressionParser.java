@@ -1,12 +1,11 @@
 package uk.org.thehickses.expressions;
 
-import java.util.ArrayDeque;
-import java.util.Arrays;
-import java.util.Deque;
 import java.util.Map;
 import java.util.function.IntBinaryOperator;
 import java.util.function.IntSupplier;
 import java.util.function.Supplier;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -119,9 +118,9 @@ public class ExpressionParser
             Operation.MULTIPLY, Operation.DIVIDE);
 
     /**
-     * The characters of the input.
+     * The input expression.
      */
-    private final Deque<String> characters;
+    private final StringBuilder input;
 
     /**
      * Initialises the parser with the specified expression string.
@@ -147,7 +146,7 @@ public class ExpressionParser
                     "Invalid expression, the first character that is not whitespace "
                             + "or a left parenthesis must be numeric");
         }
-        characters = new ArrayDeque<>(Arrays.asList(expression.split("")));
+        input = new StringBuilder(expression);
     }
 
     /**
@@ -163,7 +162,7 @@ public class ExpressionParser
         // If there are any characters after the parsed expression, this is OK as long as they are whitespace or
         // (mismatched) right parentheses. Anything else is invalid.
         getNextMatch("(\\s|\\))+");
-        if (!characters.isEmpty())
+        if (input.length() != 0)
         {
             throw new ParseException("Expression contains extraneous characters '%s'",
                     getNextMatch(".+"));
@@ -321,15 +320,11 @@ public class ExpressionParser
     private String getNextMatch(String regex)
     {
         String answer = null;
-        while (!characters.isEmpty())
+        Matcher matcher = Pattern.compile("^" + regex).matcher(input);
+        if (matcher.find())
         {
-            String candidate = (answer == null ? "" : answer) + characters.peek();
-            if (!candidate.matches(regex))
-            {
-                break;
-            }
-            answer = candidate;
-            characters.pop();
+            answer = matcher.group();
+            input.replace(0, matcher.end(), "");
         }
         if (answer != null)
         {

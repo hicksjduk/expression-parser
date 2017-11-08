@@ -25,21 +25,67 @@ public class ExpressionParser
 {
     private static final Logger LOG = LoggerFactory.getLogger(ExpressionParser.class);
 
+    /**
+     * The exception thrown when an expression fails validation.
+     */
     @SuppressWarnings("serial")
     public static class ParseException extends Exception
     {
+        /**
+         * Initialises the exception with the specified message and parameters.
+         * 
+         * @param message
+         *            the message. May include placeholders, as supported by {@ref String#format(String, Object...)}.
+         * @param params
+         *            the parameters.
+         */
         public ParseException(String message, Object... params)
         {
             super(String.format(message, params));
         }
     }
 
+    /**
+     * An expression supplier. A custom functional interface is defined: (a) so that it can throw checked exceptions,
+     * and (b) so that instances can be chained together so that the first one that returns a non-null result terminates
+     * the chain and its result is returned.
+     */
     @FunctionalInterface
     private static interface ExpressionSupplier
     {
+        /**
+         * Parses an expression.
+         * 
+         * @return an IntSupplier whose getAsInt() method returns the result of evaluating the expression, or null if no
+         *         expression could be parsed.
+         * @throws ParseException
+         *             if the expression is invalid in format.
+         */
         IntSupplier get() throws ParseException;
+
+        /**
+         * Chains this expression supplier together with another one. The first supplier to return a non-null result
+         * terminates the chain and its result is returned.
+         * 
+         * @param other the other expression supplier.
+         * @return a new expression supplier which chains the two suppliers together.
+         */
+        default ExpressionSupplier andThenIfNull(ExpressionSupplier other)
+        {
+            return () -> {
+                IntSupplier answer = this.get();
+                if (answer == null)
+                {
+                    answer = other.get();
+                }
+                return answer;
+            };
+        }
     }
 
+    /**
+     * An enumeration of the supported operations.
+     */
     private static enum Operation
     {
         ADD("+", (a, b) -> a + b), SUBTRACT("-", (a, b) -> a - b), MULTIPLY("*",
@@ -259,32 +305,12 @@ public class ExpressionParser
     private IntSupplier parseAtomicExpression() throws ParseException
     {
         getNextMatch("\\s+");
-        IntSupplier answer = getFirstNonNull(this::parseNumber, this::parseParenthesisedExpression);
+        IntSupplier answer = ((ExpressionSupplier) this::parseNumber)
+                .andThenIfNull(this::parseParenthesisedExpression)
+                .get();
         if (answer != null)
         {
             getNextMatch("\\s+");
-        }
-        return answer;
-    }
-
-    /**
-     * Gets the first non-null value returned by one of the specified parsers.
-     * 
-     * @param parsers
-     *            the parsers.
-     * @return the first non-null value returned, or null if they all return null.
-     * @throws ParseException
-     *             if any parser throws an exception.
-     */
-    private IntSupplier getFirstNonNull(ExpressionSupplier... parsers) throws ParseException
-    {
-        IntSupplier answer = null;
-        for (ExpressionSupplier es : parsers)
-        {
-            if ((answer = es.get()) != null)
-            {
-                break;
-            }
         }
         return answer;
     }

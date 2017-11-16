@@ -56,8 +56,8 @@ public class ExpressionParser
         /**
          * Parses an expression.
          * 
-         * @return an IntSupplier whose getAsInt() method returns the result of evaluating the expression, or null if no
-         *         expression could be parsed.
+         * @return an IntSupplier which returns the result of evaluating the expression, or null if no expression could
+         *         be parsed.
          * @throws ParseException
          *             if the expression is invalid in format.
          */
@@ -67,7 +67,8 @@ public class ExpressionParser
          * Chains this expression supplier together with another one. The first supplier to return a non-null result
          * terminates the chain and its result is returned.
          * 
-         * @param other the other expression supplier.
+         * @param other
+         *            the other expression supplier.
          * @return a new expression supplier which chains the two suppliers together.
          */
         default ExpressionSupplier andThenIfNull(ExpressionSupplier other)
@@ -106,7 +107,7 @@ public class ExpressionParser
      * 
      * @param expression
      *            the string.
-     * @return an IntSupplier whose getAsInt() method returns the result of evaluating the expression.
+     * @return an IntSupplier which returns the result of evaluating the expression.
      * @throws ParseException
      *             if the expression is invalid in format.
      */
@@ -198,7 +199,7 @@ public class ExpressionParser
     /**
      * Parses the expression string.
      * 
-     * @return an IntSupplier whose getAsInt() method returns the result of evaluating the expression.
+     * @return an IntSupplier which returns the result of evaluating the expression.
      * @throws ParseException
      *             if the expression is invalid in format.
      */
@@ -219,8 +220,8 @@ public class ExpressionParser
     /**
      * Parses an expression at the current position in the input.
      * 
-     * @return an IntSupplier whose getAsInt() method returns the result of evaluating the expression, or null if no
-     *         expression could be parsed.
+     * @return an IntSupplier which returns the result of evaluating the expression, or null if no expression could be
+     *         parsed.
      * @throws ParseException
      *             if the expression is invalid in format.
      */
@@ -234,8 +235,8 @@ public class ExpressionParser
      * high-priority expression, followed by zero or more sequences of a low-priority operator and a high-priority
      * expression.
      * 
-     * @return an IntSupplier whose getAsInt() method returns the result of evaluating the expression, or null if no
-     *         expression could be parsed.
+     * @return an IntSupplier which returns the result of evaluating the expression, or null if no expression could be
+     *         parsed.
      * @throws ParseException
      *             if the expression is invalid in format.
      */
@@ -248,8 +249,8 @@ public class ExpressionParser
      * Parses a high-priority expression at the current position in the input. A high-priority expression consists of an
      * atomic expression, followed by zero or more sequences of a high-priority operator and an atomic expression.
      * 
-     * @return an IntSupplier whose getAsInt() method returns the result of evaluating the expression, or null if no
-     *         expression could be parsed.
+     * @return an IntSupplier which returns the result of evaluating the expression, or null if no expression could be
+     *         parsed.
      * @throws ParseException
      *             if the expression is invalid in format.
      */
@@ -266,8 +267,8 @@ public class ExpressionParser
      *            the operand parser.
      * @param operatorParser
      *            the operator parser.
-     * @return an IntSupplier whose getAsInt() method returns the result of evaluating the expression, or null if no
-     *         expression could be parsed.
+     * @return an IntSupplier which returns the result of evaluating the expression, or null if no expression could be
+     *         parsed.
      * @throws ParseException
      *             if the expression is invalid in format.
      */
@@ -297,8 +298,8 @@ public class ExpressionParser
      * Parses an atomic expression at the current position in the input. This is either a number or a parenthesised
      * expression, optionally surrounded by whitespace.
      * 
-     * @return an IntSupplier whose getAsInt() method returns the result of evaluating the expression, or null if no
-     *         expression could be parsed.
+     * @return an IntSupplier which returns the result of evaluating the expression, or null if no expression could be
+     *         parsed.
      * @throws ParseException
      *             if the expression is invalid in format.
      */
@@ -366,7 +367,7 @@ public class ExpressionParser
     /**
      * Parses a number at the current position in the input. This is a string of one or more digits.
      * 
-     * @return an IntSupplier whose applyAsInt() method returns the number found, or null if no number could be parsed.
+     * @return an IntSupplier which returns the number found, or null if no number could be parsed.
      */
     private IntSupplier parseNumber()
     {
@@ -384,8 +385,8 @@ public class ExpressionParser
      * Parses a parenthesised expression at the current position in the input. This is a left parenthesis, followed by
      * an expression, optionally followed by a right parenthesis.
      * 
-     * @return an IntSupplier whose applyAsInt() method returns the result of evaluating the expression found, or null
-     *         if no expression could be parsed.
+     * @return an IntSupplier which returns the result of evaluating the expression found, or null if no expression
+     *         could be parsed.
      */
     private IntSupplier parseParenthesisedExpression() throws ParseException
     {

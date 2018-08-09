@@ -211,7 +211,7 @@ public class ExpressionParser
                 .of(operations)
                 .collect(Collectors.toMap(o -> o.symbol, o -> o.operation));
         String regex = new StringBuilder("[")
-                .append(StringUtils.join(opsBySymbol.keySet(), ""))
+                .append(opsBySymbol.keySet().stream().collect(Collectors.joining()))
                 .append("]")
                 .toString();
         return () -> opsBySymbol.get(getNextMatch(regex));

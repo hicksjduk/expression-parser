@@ -121,7 +121,7 @@ public class ExpressionParserTest
     @Test(expected = ParseException.class)
     public void testEmptyParentheses() throws Exception
     {
-        ExpressionParser.parse("()");
+        ExpressionParser.parse("3+()");
     }
 
     @Test(expected = ParseException.class)
@@ -140,5 +140,17 @@ public class ExpressionParserTest
     public void testJustAnOperator() throws Exception
     {
         ExpressionParser.parse("  *    ");
+    }
+
+    @Test(expected = ParseException.class)
+    public void testLeftParenthesisFollowedByAnOperator() throws Exception
+    {
+        ExpressionParser.parse("3+(*");
+    }
+
+    @Test(expected = ParseException.class)
+    public void testOperatorFollowedByAnOperator() throws Exception
+    {
+        ExpressionParser.parse("3+-");
     }
 }

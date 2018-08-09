@@ -26,83 +26,6 @@ public class ExpressionParser
     private static final Logger LOG = LoggerFactory.getLogger(ExpressionParser.class);
 
     /**
-     * The exception thrown when an expression fails validation.
-     */
-    @SuppressWarnings("serial")
-    public static class ParseException extends Exception
-    {
-        /**
-         * Initialises the exception with the specified message and parameters.
-         * 
-         * @param message
-         *            the message. May include placeholders, as supported by {@ref String#format(String, Object...)}.
-         * @param params
-         *            the parameters.
-         */
-        public ParseException(String message, Object... params)
-        {
-            super(String.format(message, params));
-        }
-    }
-
-    /**
-     * An expression supplier. A custom functional interface is defined: (a) so that it can throw checked exceptions,
-     * and (b) so that instances can be chained together so that the first one that returns a non-null result terminates
-     * the chain and its result is returned.
-     */
-    @FunctionalInterface
-    private static interface ExpressionSupplier
-    {
-        /**
-         * Parses an expression.
-         * 
-         * @return an IntSupplier which returns the result of evaluating the expression, or null if no expression could
-         *         be parsed.
-         * @throws ParseException
-         *             if the expression is invalid in format.
-         */
-        IntSupplier get() throws ParseException;
-
-        /**
-         * Chains this expression supplier together with another one. The first supplier to return a non-null result
-         * terminates the chain and its result is returned.
-         * 
-         * @param other
-         *            the other expression supplier.
-         * @return a new expression supplier which chains the two suppliers together.
-         */
-        default ExpressionSupplier andThenIfNull(ExpressionSupplier other)
-        {
-            return () -> {
-                IntSupplier answer = this.get();
-                if (answer == null)
-                {
-                    answer = other.get();
-                }
-                return answer;
-            };
-        }
-    }
-
-    /**
-     * An enumeration of the supported operations.
-     */
-    private static enum Operation
-    {
-        ADD("+", (a, b) -> a + b), SUBTRACT("-", (a, b) -> a - b), MULTIPLY("*",
-                (a, b) -> a * b), DIVIDE("/", (a, b) -> a / b);
-
-        public final String symbol;
-        public final IntBinaryOperator operation;
-
-        private Operation(String symbol, IntBinaryOperator operation)
-        {
-            this.symbol = symbol;
-            this.operation = operation;
-        }
-    }
-
-    /**
      * Parses the specified string as an expression.
      * 
      * @param expression
@@ -113,60 +36,32 @@ public class ExpressionParser
      */
     public static IntSupplier parse(String expression) throws ParseException
     {
-        logStart(() -> LOG.debug("Parsing expression: '{}'", expression));
+        LOG.debug(StringUtils.repeat('>', 30));
+        LOG.debug("Parsing expression: '{}'", expression);
         try
         {
             IntSupplier answer = new ExpressionParser(expression).parse();
-            logEnd(() -> LOG.debug("Parsed expression '{}' is valid and has value {}", expression,
-                    answer.getAsInt()));
+            LOG.debug("Parsed expression '{}' is valid and has value {}", expression,
+                    answer.getAsInt());
             return answer;
         }
         catch (ParseException ex)
         {
-            logEnd(() -> LOG.debug("Parsed expression '{}' is invalid", expression, ex));
+            LOG.debug("Parsed expression '{}' is invalid", expression, ex);
             throw ex;
+        }
+        finally
+        {
+            LOG.debug(StringUtils.repeat('<', 30));
         }
     }
 
-    /**
-     * Logs the start of parsing an expression.
-     * 
-     * @param logAction
-     *            the logging action specific to the expression.
-     */
-    private static void logStart(Runnable logAction)
-    {
-        LOG.debug(StringUtils.repeat('>', 30));
-        logAction.run();
-    }
-
-    /**
-     * Logs the end of parsing an expression.
-     * 
-     * @param logAction
-     *            the logging action specific to the expression.
-     */
-    private static void logEnd(Runnable logAction)
-    {
-        logAction.run();
-        LOG.debug(StringUtils.repeat('<', 30));
-    }
-
-    /**
-     * A parser for low-priority expressions.
-     */
     private final Supplier<IntBinaryOperator> lowPriorityOperationParser = operationParser(
             Operation.ADD, Operation.SUBTRACT);
 
-    /**
-     * A parser for high-priority expressions.
-     */
     private final Supplier<IntBinaryOperator> highPriorityOperationParser = operationParser(
             Operation.MULTIPLY, Operation.DIVIDE);
 
-    /**
-     * The input expression.
-     */
     private final StringBuilder input;
 
     /**
@@ -180,19 +75,13 @@ public class ExpressionParser
     private ExpressionParser(String expression) throws ParseException
     {
         if (StringUtils.isBlank(expression))
-        {
             throw new ParseException("No expression specified");
-        }
         if (!expression.matches("(\\d|\\s|[()+\\-*/])+"))
-        {
             throw new ParseException("Input expression contains invalid characters");
-        }
         if (!expression.matches("(\\s|\\()*\\d.*"))
-        {
             throw new ParseException(
                     "Invalid expression, the first character that is not whitespace "
                             + "or a left parenthesis must be numeric");
-        }
         input = new StringBuilder(expression);
     }
 
@@ -210,10 +99,8 @@ public class ExpressionParser
         // (mismatched) right parentheses. Anything else is invalid.
         getNextMatch("(\\s|\\))+");
         if (input.length() != 0)
-        {
             throw new ParseException("Expression contains extraneous characters '%s'",
                     getNextMatch(".+"));
-        }
         return answer;
     }
 
@@ -276,22 +163,19 @@ public class ExpressionParser
             Supplier<IntBinaryOperator> operatorParser) throws ParseException
     {
         IntSupplier answer = operandParser.get();
-        while (answer != null)
+        if (answer == null)
+            return null;
+        while (true)
         {
             IntBinaryOperator operator = operatorParser.get();
             if (operator == null)
-            {
-                break;
-            }
+                return answer;
             IntSupplier rightOperand = operandParser.get();
             if (rightOperand == null)
-            {
                 throw new ParseException("Operator must be followed by an expression");
-            }
             IntSupplier leftOperand = answer;
             answer = () -> operator.applyAsInt(leftOperand.getAsInt(), rightOperand.getAsInt());
         }
-        return answer;
     }
 
     /**
@@ -307,12 +191,10 @@ public class ExpressionParser
     {
         getNextMatch("\\s+");
         IntSupplier answer = ((ExpressionSupplier) this::parseNumber)
-                .andThenIfNull(this::parseParenthesisedExpression)
+                .orIfNull(this::parseParenthesisedExpression)
                 .get();
         if (answer != null)
-        {
             getNextMatch("\\s+");
-        }
         return answer;
     }
 
@@ -346,21 +228,15 @@ public class ExpressionParser
      */
     private String getNextMatch(String regex)
     {
-        String answer = null;
         Matcher matcher = Pattern.compile("^" + regex).matcher(input);
-        if (matcher.find())
-        {
-            answer = matcher.group();
-            input.replace(0, matcher.end(), "");
-        }
-        if (answer != null)
-        {
-            LOG.debug("Found character(s) matching '{}': '{}'", regex, answer);
-        }
-        else
+        if (!matcher.find())
         {
             LOG.debug("No match found for '{}'", regex);
+            return null;
         }
+        String answer = matcher.group();
+        input.replace(0, matcher.end(), "");
+        LOG.debug("Found character(s) matching '{}': '{}'", regex, answer);
         return answer;
     }
 
@@ -371,14 +247,8 @@ public class ExpressionParser
      */
     private IntSupplier parseNumber()
     {
-        IntSupplier answer = null;
         String token = getNextMatch("\\d+");
-        if (token != null)
-        {
-            int num = Integer.parseInt(token);
-            answer = () -> num;
-        }
-        return answer;
+        return token == null ? null : () -> Integer.parseInt(token);
     }
 
     /**
@@ -390,16 +260,75 @@ public class ExpressionParser
      */
     private IntSupplier parseParenthesisedExpression() throws ParseException
     {
-        IntSupplier answer = null;
-        if (getNextMatch("\\(") != null)
-        {
-            answer = parseExpression();
-            if (answer == null)
-            {
-                throw new ParseException("Left parenthesis must be followed by an expression");
-            }
-            getNextMatch("\\)");
-        }
+        if (getNextMatch("\\(") == null)
+            return null;
+        IntSupplier answer = parseExpression();
+        if (answer == null)
+            throw new ParseException("Left parenthesis must be followed by an expression");
+        getNextMatch("\\)");
         return answer;
+    }
+
+    @SuppressWarnings("serial")
+    public static class ParseException extends Exception
+    {
+        public ParseException(String message, Object... params)
+        {
+            super(String.format(message, params));
+        }
+    }
+
+    /**
+     * An expression supplier. A custom functional interface is defined: (a) so that it can throw checked exceptions,
+     * and (b) so that instances can be chained together so that the first one that returns a non-null result terminates
+     * the chain and its result is returned.
+     */
+    @FunctionalInterface
+    private static interface ExpressionSupplier
+    {
+        /**
+         * Parses an expression.
+         * 
+         * @return an IntSupplier which returns the result of evaluating the expression, or null if no expression could
+         *         be parsed.
+         * @throws ParseException
+         *             if the expression is invalid in format.
+         */
+        IntSupplier get() throws ParseException;
+
+        /**
+         * Chains this expression supplier together with another one. The first supplier to return a non-null result
+         * terminates the chain and its result is returned.
+         * 
+         * @param other
+         *            the other expression supplier.
+         * @return a new expression supplier which chains the two suppliers together.
+         */
+        default ExpressionSupplier orIfNull(ExpressionSupplier other)
+        {
+            return () -> {
+                IntSupplier myResult = this.get();
+                if (myResult != null)
+                    return myResult;
+                return other.get();
+            };
+        }
+    }
+
+    private static enum Operation
+    {
+        ADD("+", (a, b) -> a + b),
+        SUBTRACT("-", (a, b) -> a - b),
+        MULTIPLY("*", (a, b) -> a * b),
+        DIVIDE("/", (a, b) -> a / b);
+
+        public final String symbol;
+        public final IntBinaryOperator operation;
+
+        private Operation(String symbol, IntBinaryOperator operation)
+        {
+            this.symbol = symbol;
+            this.operation = operation;
+        }
     }
 }

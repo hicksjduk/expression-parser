@@ -33,9 +33,9 @@ public class ExpressionParser
     private static final Pattern WHITESPACE = Pattern.compile("\\s+");
     private static final Pattern VALID_TRAILING_CHARS = Pattern.compile("(\\s|\\))+");
 
-    private final static Function<ExpressionParser, IntBinaryOperator> LOW_PRIORITY_OPERATION_PARSER = operationParser(
+    private final static Function<ExpressionParser, IntBinaryOperator> LOW_PRIORITY_OPERATOR_PARSER = operatorParser(
             Operation.ADD, Operation.SUBTRACT);
-    private final static Function<ExpressionParser, IntBinaryOperator> HIGH_PRIORITY_OPERATION_PARSER = operationParser(
+    private final static Function<ExpressionParser, IntBinaryOperator> HIGH_PRIORITY_OPERATOR_PARSER = operatorParser(
             Operation.MULTIPLY, Operation.DIVIDE);
 
     /**
@@ -70,13 +70,13 @@ public class ExpressionParser
     }
 
     /**
-     * Gets an operation parser for the specified operations.
+     * Gets a parser for the operators associated with the specified operations.
      * 
      * @param operations
      *            the operations.
      * @return an operation parser.
      */
-    private static Function<ExpressionParser, IntBinaryOperator> operationParser(
+    private static Function<ExpressionParser, IntBinaryOperator> operatorParser(
             Operation... operations)
     {
         Map<String, IntBinaryOperator> opsBySymbol = Stream
@@ -158,7 +158,7 @@ public class ExpressionParser
      */
     private IntSupplier parseLowPriorityExpression() throws ParseException
     {
-        return parseExpression(this::parseHighPriorityExpression, LOW_PRIORITY_OPERATION_PARSER);
+        return parseExpression(this::parseHighPriorityExpression, LOW_PRIORITY_OPERATOR_PARSER);
     }
 
     /**
@@ -172,7 +172,7 @@ public class ExpressionParser
      */
     private IntSupplier parseHighPriorityExpression() throws ParseException
     {
-        return parseExpression(this::parseAtomicExpression, HIGH_PRIORITY_OPERATION_PARSER);
+        return parseExpression(this::parseAtomicExpression, HIGH_PRIORITY_OPERATOR_PARSER);
     }
 
     /**
@@ -230,11 +230,11 @@ public class ExpressionParser
 
     /**
      * Looks for a string of characters at the current position in the input, that matches the specified regular
-     * expression. If a matching string is found, the character(s) are consumed and the string is returned; otherwise no
-     * characters are consumed and the result is null.
+     * expression pattern. If a matching string is found, the character(s) are consumed and the string is returned;
+     * otherwise no characters are consumed and the result is null.
      * 
-     * @param regex
-     *            the regular expression.
+     * @param pattern
+     *            the pattern.
      * @return the matching character(s), or null if no match was found.
      */
     private String nextMatch(Pattern pattern)
@@ -260,7 +260,10 @@ public class ExpressionParser
     private IntSupplier parseNumber()
     {
         String token = nextMatch(NUMBER);
-        return token == null ? null : () -> Integer.parseInt(token);
+        if (token == null)
+            return null;
+        int i = Integer.parseInt(token);
+        return () -> i;
     }
 
     /**
